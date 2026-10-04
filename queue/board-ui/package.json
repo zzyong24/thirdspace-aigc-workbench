@@ -1,0 +1,22 @@
+{
+  "name": "thirdspace-aigc-board",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/main.jsx --bundle --minify --format=iife --platform=browser --target=es2020 --outfile=../board.bundle.js"
+  },
+  "dependencies": {
+    "@ant-design/icons": "6.3.4",
+    "antd": "6.6.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1"
+  },
+  "devDependencies": {
+    "@ant-design/cli": "6.6.5",
+    "esbuild": "0.28.2"
+  },
+  "license": "MIT"
+}

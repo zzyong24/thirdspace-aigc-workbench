@@ -1,0 +1,31 @@
+version: 1
+assets:
+- id: C01
+  category: character
+  name: 小灯机器人
+  shots:
+  - 1
+  - 2
+  - 3
+  image: characters/C01-robot-turnaround-v01.svg
+  prompt_file: prompts/assets/C01-robot.md
+  status: draft
+- id: S01
+  category: scene
+  name: 清晨屋顶
+  shots:
+  - 1
+  - 2
+  - 3
+  image: scenes/S01-rooftop-turnaround-v01.svg
+  prompt_file: prompts/assets/S01-rooftop.md
+  status: draft
+- id: P01
+  category: prop
+  name: 无文字发光盒
+  shots:
+  - 2
+  - 3
+  image: props/P01-light-turnaround-v01.svg
+  prompt_file: prompts/assets/P01-light.md
+  status: draft

@@ -1,0 +1,14 @@
+version: 1
+records:
+- id: 1
+  duration_seconds: 5
+  state: planned
+  notes: 教学示例；尚未提交 RunningHub，未生成视频或审片。
+- id: 2
+  duration_seconds: 5
+  state: planned
+  notes: 教学示例；尚未提交 RunningHub，未生成视频或审片。
+- id: 3
+  duration_seconds: 5
+  state: planned
+  notes: 教学示例；尚未提交 RunningHub，未生成视频或审片。

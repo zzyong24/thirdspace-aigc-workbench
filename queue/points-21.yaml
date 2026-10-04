@@ -1,0 +1,7 @@
+queue: points_21
+scheduler_status: disabled
+policy:
+  allow_existing_runninghub_points: false
+  check_remaining_balance_and_job_estimate_first: true
+  may_spend_rmb_wallet_or_purchase_topups: false
+items: []

@@ -1,0 +1,4 @@
+interface:
+  display_name: "RunningHub 故事视频"
+  short_description: "按三视图与摄影调度组织故事分镜，核价、生成与逐镜审片"
+  default_prompt: "使用 $runninghub-minimax-story-video 为我的故事准备参考图与完整摄影调度，再按当前授权核验 RunningHub 节点并记录结果。"

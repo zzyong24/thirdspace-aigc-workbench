@@ -1,0 +1,21 @@
+version: 1
+timezone: Asia/Shanghai
+credit_queue_check_start: "21:00"
+credit_queue_automation: disabled
+credit_queue_automation_id: null
+execution_policy:
+  model: MiniMax H3 RH Enhanced
+  allow_existing_runninghub_points_at_21_00: false
+  point_budget_per_run: 0
+  require_balance_check_before_every_submission: true
+  may_spend_rmb_wallet_or_purchase_topups: false
+  concurrency: verify_in_live_ui_each_run
+queues:
+  anytime:
+    file: queue/anytime.yaml
+    trigger: on_input_or_dependency_ready
+  points_21:
+    file: queue/points-21.yaml
+    desired_trigger: daily_at_configured_window
+    automation_status: disabled
+    scope: runninghub_story_video_generation

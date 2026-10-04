@@ -1,0 +1,131 @@
+"""Regression coverage for migration, readiness gates and first installation."""
+import copy
+import json
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+import yaml
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'queue'))
+import build_board
+from project_records import load_project, render_markdown
+
+
+class RecordsTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix='aigc workspace ')
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.project = self.root / 'projects' / 'demo-rooftop'
+        shutil.copytree(ROOT / 'projects' / 'demo-rooftop', self.project)
+
+    def modify(self, name, edit):
+        path = self.project / name
+        data = yaml.safe_load(path.read_text())
+        edit(data)
+        path.write_text(yaml.safe_dump(data, allow_unicode=True))
+
+    def test_planned_shots_are_not_generated_or_passed(self):
+        with patch.object(build_board, 'ROOT', self.root), patch.object(build_board, 'PROJECTS', self.root / 'projects'):
+            project = build_board.collect_projects({}, {})[0]
+        self.assertEqual((project['expected_shots'], project['generated'], project['passed']), (3, 0, 0))
+        self.assertEqual(project['assets']['total'], 3)
+        self.assertEqual(project['shot_prompts'][1]['reference_asset_ids'], ['C01', 'S01', 'P01'])
+
+    def test_ready_rejects_draft_and_missing_reference(self):
+        with self.assertRaisesRegex(ValueError, 'uploaded'):
+            load_project(self.project, ready=True)
+        self.modify('assets/asset-matrix.yaml', lambda d: [a.update(status='uploaded') for a in d['assets']])
+        self.assertIsNotNone(load_project(self.project, ready=True))
+        (self.project / 'assets/characters/C01-robot-turnaround-v01.svg').unlink()
+        with self.assertRaisesRegex(ValueError, 'must exist'):
+            load_project(self.project, ready=True)
+
+    def test_camera_gate_does_not_accept_missing_stop(self):
+        self.modify('assets/asset-matrix.yaml', lambda d: [a.update(status='uploaded') for a in d['assets']])
+        self.modify('prompts/shots.yaml', lambda d: d['shots'][0]['camera'].update(stop=''))
+        self.assertIsNotNone(load_project(self.project))
+        with self.assertRaisesRegex(ValueError, 'camera'):
+            load_project(self.project, ready=True)
+
+    def test_bad_references_and_version_fail_loudly(self):
+        self.modify('prompts/shots.yaml', lambda d: d['shots'][0].update(references=['C99']))
+        with self.assertRaisesRegex(ValueError, 'unknown reference'):
+            load_project(self.project)
+        self.modify('prompts/shots.yaml', lambda d: d.update(version=2))
+        with self.assertRaisesRegex(ValueError, 'version'):
+            load_project(self.project)
+
+    def test_duplicate_shots_and_path_escape_rejected(self):
+        self.modify('prompts/shots.yaml', lambda d: d['shots'].append(copy.deepcopy(d['shots'][0])))
+        with self.assertRaisesRegex(ValueError, 'unique'):
+            load_project(self.project)
+        self.modify('prompts/shots.yaml', lambda d: d['shots'].pop())
+        self.modify('assets/asset-matrix.yaml', lambda d: d['assets'][0].update(image='../../outside.svg'))
+        with self.assertRaisesRegex(ValueError, 'within project'):
+            load_project(self.project)
+
+    def test_symlink_reference_cannot_read_outside_project(self):
+        outside = self.root / 'private.svg'
+        outside.write_text('<svg/>')
+        link = self.project / 'assets/characters/external.svg'
+        link.symlink_to(outside)
+        self.modify('assets/asset-matrix.yaml', lambda d: d['assets'][0].update(image='characters/external.svg'))
+        with self.assertRaisesRegex(ValueError, 'within project'):
+            load_project(self.project)
+
+    def test_old_markdown_summary_uses_actual_inventory(self):
+        folder = self.root / 'legacy'
+        (folder / 'assets/characters').mkdir(parents=True)
+        (folder / 'assets/characters/C01.png').write_bytes(b'example')
+        (folder / 'assets/asset-matrix.md').write_text('# 资产\n\n**状态**：不同措辞，无法通过旧摘要句解析。\n\n## 人物\n\n| C01 | robot | 01 | `characters/C01.png` | `prompts/assets/C01.md` | 已上传 |\n')
+        with patch.object(build_board, 'ROOT', self.root):
+            self.assertEqual(build_board.asset_summary(folder)['total'], 1)
+        (folder / 'assets/characters/C01.png').unlink()
+        with patch.object(build_board, 'ROOT', self.root):
+            self.assertEqual(build_board.asset_summary(folder)['total'], 0)
+
+    def test_render_is_repeatable_and_keeps_camera(self):
+        render_markdown(self.project)
+        first = (self.project / 'prompts/shot-prompts.md').read_text()
+        render_markdown(self.project)
+        self.assertEqual(first, (self.project / 'prompts/shot-prompts.md').read_text())
+        self.assertIn('**stop**', first)
+        self.assertIn('### 03', first)
+
+    def test_scaffold_in_foreign_directory_and_duplicate_guard(self):
+        location = self.root / 'new clone with spaces'
+        for relative in ('projects/new_project.py', 'queue/project_records.py'):
+            dest = location / relative
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / relative, dest)
+        command = [sys.executable, str(location / 'projects/new_project.py'), 'new-story', '--title', '新的作品']
+        result = subprocess.run(command, cwd=self.root, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        project = location / 'projects/new-story'
+        for relative in ('assets/asset-matrix.md', 'prompts/shot-prompts.md', 'assets/audio/source.yaml', 'shot_audit.md', 'run-log.md'):
+            self.assertTrue((project / relative).is_file(), relative)
+        self.assertEqual(load_project(project)['shots'], [])
+        (project / 'script.md').write_text('user edit')
+        self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
+        self.assertEqual((project / 'script.md').read_text(), 'user edit')
+
+    def test_install_skill_without_workspace_or_overwrite(self):
+        target = self.root / 'agent skills'
+        command = [sys.executable, str(ROOT / 'scripts/install_skill.py'), '--skills-dir', str(target)]
+        result = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        skill = target / 'runninghub-minimax-story-video'
+        self.assertTrue((skill / 'references/records.md').is_file())
+        self.assertFalse((skill / 'queue').exists())
+        self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
+
+
+if __name__ == '__main__':
+    unittest.main()

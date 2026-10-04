@@ -1,0 +1,11 @@
+queue: anytime
+trigger: when_input_or_dependency_becomes_ready
+policy:
+  require_no_unapproved_incremental_charge: true
+  respect_dependencies: true
+items:
+  - project: projects/demo-rooftop
+    title: 屋顶的第一束光（原创教学示例）
+    task: prepare_references
+    state: preparing
+    depends_on: 用正式三视图替换示意图，人工审查并上传自己的画布
