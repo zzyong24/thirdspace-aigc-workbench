@@ -2,6 +2,8 @@
 
 **把剧本、三视图、分镜提示词和审片结果放进同一个工作台。**
 
+当前是 [可用性验收分支](https://github.com/zzyong24/thirdspace-aigc-workbench/pull/1)，尚未发布为新的稳定版；以下 clone 命令明确取本分支。
+
 这是一个面向 AI 视频创作者的本地制作工作台，配套可单独安装的 RunningHub 故事视频 Skill。适合已经用代理协作创作，希望把多作品、多镜头和返工记录组织清楚的人。
 
 ![工作台真实界面：原创教学项目的素材资产页](docs/images/assets.png)
@@ -41,7 +43,7 @@ flowchart LR
 需要 Python 3.10+。查看工作台无需 Node.js；前端产物已包含。macOS/Linux：
 
 ```bash
-git clone https://github.com/zzyong24/thirdspace-aigc-workbench.git
+git clone --branch codex/automation-readiness https://github.com/zzyong24/thirdspace-aigc-workbench.git
 cd thirdspace-aigc-workbench
 python3 -m venv .venv
 source .venv/bin/activate
