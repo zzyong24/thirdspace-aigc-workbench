@@ -28,7 +28,14 @@ class ServerTests(unittest.TestCase):
         (skill / 'SKILL.md').write_text('portable skill')
         outside = self.root.parent / 'outside.txt'
         outside.write_text('external')
-        (self.root / 'outside-link.txt').symlink_to(outside)
+        self.symlink_available = True
+        try:
+            (self.root / 'outside-link.txt').symlink_to(outside)
+        except OSError as error:
+            if sys.platform == 'win32' and error.winerror == 1314:
+                self.symlink_available = False
+            else:
+                raise
         self.patch = patch.object(serve_board, 'ROOT', self.root)
         self.patch.start()
         self.addCleanup(self.patch.stop)
@@ -48,8 +55,16 @@ class ServerTests(unittest.TestCase):
             self.assertEqual(response.read(), b'portable skill')
 
     def test_hidden_files_directory_listing_and_external_links_blocked(self):
-        for relative in ('/.env', '/%2egit/config', '/outside-link.txt', '/queue/'):
+        for relative in ('/.env', '/%2egit/config', '/queue/', '/%2eprivate/automation/state.json', '/queue/../.env', '/queue/%5c../.env'):
             with self.subTest(path=relative), self.assertRaises(urllib.error.HTTPError) as caught:
                 self.opener.open(self.url + relative, timeout=5)
             self.assertEqual(caught.exception.code, 404)
             caught.exception.close()
+
+    def test_external_symlink_blocked(self):
+        if not self.symlink_available:
+            self.skipTest('Windows account cannot create symlinks')
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            self.opener.open(self.url + '/outside-link.txt', timeout=5)
+        self.assertEqual(caught.exception.code, 404)
+        caught.exception.close()

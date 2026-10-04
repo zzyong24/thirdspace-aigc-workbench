@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Install only the portable RunningHub Skill; never overwrite an existing install."""
+
+import sys
 import argparse
 import shutil
 from pathlib import Path
@@ -21,4 +23,8 @@ def main():
 
 
 if __name__ == '__main__':
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8')
     main()

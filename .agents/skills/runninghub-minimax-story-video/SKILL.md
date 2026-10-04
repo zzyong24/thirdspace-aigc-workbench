@@ -45,6 +45,6 @@ description: 通过 RunningHub RHTV 的 MiniMax 参考图视频流程制作多�
 
 ## 验证与限制
 
-画布节点和浏览器 UI 会变；当前费用、免费活动、模型和并发以现场为准。浏览器流程依赖代理宿主和 Ego Lite，本 Skill 不自带执行器或长期登录。发布版的教学项目没有在 RunningHub 提交任务；示例图不代表模型效果。
+画布节点和浏览器 UI 会变；当前费用、免费活动、模型和并发以现场为准。浏览器流程依赖代理宿主和 Ego Lite，本 Skill 不自带长期登录；本仓库可选执行器见 [执行与恢复说明](references/automation.md)。发布版的教学项目没有在 RunningHub 提交任务；示例图不代表模型效果。
 
 构图/连续性可参考 [跨模型改写](references/awesome-seedance-adaptation.md)，不能把 Seedance 专有语法或模型能力直接当 MiniMax 规格。

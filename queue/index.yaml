@@ -1,6 +1,7 @@
 version: 1
 timezone: Asia/Shanghai
 credit_queue_check_start: "21:00"
+credit_queue_check_end: "22:00"
 credit_queue_automation: disabled
 credit_queue_automation_id: null
 execution_policy:

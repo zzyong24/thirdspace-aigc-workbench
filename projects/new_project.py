@@ -29,14 +29,17 @@ def main() -> None:
     parser.add_argument("slug", help="lowercase project folder name, e.g. spring-story")
     parser.add_argument("--title", required=True, help="user-facing work title")
     args = parser.parse_args()
-    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", args.slug):
-        parser.error("slug must use lowercase letters, digits and hyphens")
+    if len(args.slug) > 64 or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", args.slug) or args.slug in {'con', 'prn', 'aux', 'nul', *(f'com{n}' for n in range(1,10)), *(f'lpt{n}' for n in range(1,10))}:
+        parser.error("slug must use 1–64 lowercase letters/digits/hyphens and cannot be a Windows device name")
     title = args.title.strip()
     if not title:
         parser.error("title cannot be empty")
 
     folder = PROJECTS / args.slug
-    folder.mkdir(exist_ok=False)
+    try:
+        folder.mkdir(exist_ok=False)
+    except OSError as error:
+        parser.error(f'cannot create project: {error}')
     for relative in DIRECTORIES:
         (folder / relative).mkdir(parents=True)
     documents = {
@@ -61,8 +64,8 @@ canvas_url: null
 
 ## 工作入口
 
-- 先写 `proposal.md`、`research.md`、`script.md`、`storyboard.md`。
-- 生成前建立 `assets/asset-matrix.md` 与 `prompts/shot-prompts.md`，核对全部人物、场景、道具及每镜引用。
+- 先写 `proposal.md`、`research.md`、`script.md`；在 `prompts/shots.yaml` 维护分镜和摄影调度。
+- 在 `assets/asset-matrix.yaml` 与 `shot_audit.yaml` 维护资产和审片；运行 `projects/render_records.py` 生成 Markdown 阅读页，勿直接编辑生成页。
 - RunningHub 网页操作使用 `../../.agents/skills/runninghub-minimax-story-video/SKILL.md`，浏览器操作遵循 `$ego-browser`。
 - 在 `project_assets.md` 记录资产路径、音源状态、画布链接与交付物；项目特有约束补在本文件。
 """,
@@ -85,4 +88,8 @@ canvas_url: null
 
 
 if __name__ == "__main__":
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8')
     main()

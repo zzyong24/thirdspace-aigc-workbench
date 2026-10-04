@@ -2,6 +2,8 @@
 """Build a self-contained data page for the local Ant Design production board."""
 
 from __future__ import annotations
+import sys
+
 
 import json
 import re
@@ -12,6 +14,7 @@ from zoneinfo import ZoneInfo
 
 import yaml
 from project_records import load_project, board_records
+from storage import within, atomic_text
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,6 +39,7 @@ DOCUMENT_SPECS = (
 
 
 def file_entry(path: Path, category: str, title: str = "") -> dict:
+    within(ROOT, path.relative_to(ROOT).as_posix())
     stat = path.stat()
     return {
         "path": path.relative_to(ROOT).as_posix(),
@@ -51,7 +55,7 @@ def file_entry(path: Path, category: str, title: str = "") -> dict:
 def document_items(folder: Path) -> list[dict]:
     items = []
     for relative, title, category in DOCUMENT_SPECS:
-        path = folder / relative
+        path = within(folder, relative)
         item = {"key": relative, "title": title, "category": category, "exists": path.is_file(), "content": ""}
         if path.is_file():
             item.update(file_entry(path, category, title))
@@ -60,7 +64,7 @@ def document_items(folder: Path) -> list[dict]:
     known = {relative for relative, _, _ in DOCUMENT_SPECS}
     for path in sorted(folder.rglob("*.md")):
         relative = path.relative_to(folder).as_posix()
-        if relative in known or any(part.startswith(".") for part in path.relative_to(folder).parts):
+        if relative in known or any(part.startswith(".") for part in path.relative_to(folder).parts) or not path.resolve().is_relative_to(folder.resolve()):
             continue
         category = "资产提示词" if relative.startswith("prompts/assets/") else "附加文档"
         title = f"资产提示词 · {path.stem}" if category == "资产提示词" else relative
@@ -98,7 +102,7 @@ def workspace_documents() -> list[dict]:
 
 
 def inventory(folder: Path, extras: list[Path] | None = None) -> list[dict]:
-    files = [path for path in folder.rglob("*") if path.is_file() and not any(part.startswith(".") for part in path.relative_to(folder).parts)]
+    files = [path for path in folder.rglob("*") if path.is_file() and path.resolve().is_relative_to(folder.resolve()) and not any(part.startswith(".") for part in path.relative_to(folder).parts)]
     files.extend(path for path in (extras or []) if path.is_file() and path not in files)
     items = []
     for path in files:
@@ -313,7 +317,7 @@ def collect_projects(anytime: dict, points: dict) -> list[dict]:
     entries: dict[str, dict] = {}
     if PROJECTS.exists():
         for folder in PROJECTS.iterdir():
-            if folder.is_dir() and (folder / "AGENTS.md").exists():
+            if folder.is_dir() and folder.resolve().is_relative_to(PROJECTS.resolve()) and (folder / "AGENTS.md").exists():
                 relative = folder.relative_to(ROOT).as_posix()
                 entries[relative] = {"anytime": [], "points_21": []}
     for lane_name, lane in (("anytime", anytime), ("points_21", points)):
@@ -323,7 +327,9 @@ def collect_projects(anytime: dict, points: dict) -> list[dict]:
 
     projects = []
     for relative, tasks in entries.items():
-        folder = ROOT / relative
+        folder = within(PROJECTS, relative.removeprefix('projects/'))
+        if folder.parent.resolve() != PROJECTS.resolve():
+            raise ValueError('queued projects must be direct children of projects/')
         metadata = read_yaml(folder / "project.yaml")
         guide = read_text(folder / "AGENTS.md")
         heading = re.search(r"^#\s+(.+)$", guide, re.M)
@@ -498,9 +504,13 @@ def main() -> None:
     if "__BOARD_DATA__" not in template:
         raise ValueError("board-ui/template.html is missing the data slot")
     output = QUEUE / "board.html"
-    output.write_text(template.replace("__BOARD_DATA__", data), encoding="utf-8")
+    atomic_text(output, template.replace("__BOARD_DATA__", data))
     print(f"Updated {output.relative_to(ROOT)} ({len(board['projects'])} project(s))")
 
 
 if __name__ == "__main__":
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8')
     main()

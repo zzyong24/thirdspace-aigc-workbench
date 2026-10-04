@@ -4,6 +4,7 @@ import math
 import re
 from pathlib import Path
 import yaml
+from storage import within, atomic_text
 
 CATEGORIES = {'character': '人物', 'scene': '场景', 'prop': '道具'}
 STATES = {'planned', 'running', 'generated', 'review', 'passed', 'redo'}
@@ -14,7 +15,11 @@ def record_file(folder: Path, relative: str, key: str) -> list[dict]:
     path = folder / relative
     if not path.exists():
         return []
-    data = yaml.safe_load(path.read_text(encoding='utf-8'))
+    local_path(folder, relative)
+    try:
+        data = yaml.safe_load(path.read_text(encoding='utf-8'))
+    except yaml.YAMLError as error:
+        raise ValueError(f'{path}: malformed YAML') from error
     if not isinstance(data, dict) or type(data.get('version')) is not int or data['version'] != 1:
         raise ValueError(f'{path}: expected version: 1')
     items = data.get(key)
@@ -28,9 +33,7 @@ def local_path(folder: Path, relative: str) -> Path | None:
         return None
     if not isinstance(relative, str):
         raise ValueError('asset/video path must be text')
-    if Path(relative).is_absolute() or not (folder / relative).resolve().is_relative_to(folder.resolve()):
-        raise ValueError(f'path must remain within project: {relative}')
-    return folder / relative
+    return within(folder, relative)
 
 
 def duration(value: object) -> float:
@@ -54,6 +57,8 @@ def load_project(folder: Path, ready: bool = False) -> dict | None:
     assets = record_file(folder, names[0], 'assets')
     shots = record_file(folder, names[1], 'shots')
     audit = record_file(folder, names[2], 'records')
+    if not all((folder / name).is_file() for name in names):
+        raise ValueError('structured projects require all three YAML record files')
     numbered(shots, 'prompts')
     numbered(audit, 'audit')
     shot_ids = {shot['id'] for shot in shots}
@@ -73,6 +78,8 @@ def load_project(folder: Path, ready: bool = False) -> dict | None:
         numbers = asset.get('shots', [])
         if not isinstance(numbers, list) or any(type(n) is not int or n not in shot_ids for n in numbers):
             raise ValueError(f'{asset_id}: unknown shot in coverage')
+        if len(set(numbers)) != len(numbers):
+            raise ValueError(f'{asset_id}: duplicate shot in coverage')
         local_path(folder / 'assets', asset.get('image', ''))
         local_path(folder, asset.get('prompt_file', ''))
         if type(asset.get('historical', False)) is not bool:
@@ -116,6 +123,9 @@ def load_project(folder: Path, ready: bool = False) -> dict | None:
         if entry['id'] not in shot_ids or entry.get('state') not in STATES:
             raise ValueError('audit must refer to a known shot and valid state')
         duration(entry.get('duration_seconds'))
+        shot = next(s for s in shots if s['id'] == entry['id'])
+        if entry['duration_seconds'] != shot['duration_seconds']:
+            raise ValueError(f'shot {entry["id"]}: audit duration differs from planned duration')
         local_path(folder, entry.get('video', ''))
         if not isinstance(entry.get('notes', ''), str):
             raise ValueError('audit notes must be text')
@@ -148,7 +158,7 @@ def board_records(folder: Path, root: Path, records: dict) -> tuple[list, dict, 
             'reference_details': [{'name': Path(by_id[ref]['image_name']).name or ref, 'asset_id': ref, 'image': by_id[ref]['image']} for ref in references],
             'reference_asset_ids': references, 'planned_asset_ids': coverage[shot['id']]})
     labels = {'planned': '未提交', 'running': '运行中', 'generated': '已生成；待审片', 'review': '待审片', 'passed': '通过', 'redo': '需重做'}
-    audit = [{'number': e['id'], 'duration': f'{e["duration_seconds"]} 秒', 'state': e['state'], 'verdict': labels[e['state']], 'notes': e.get('notes', '')} for e in records['audit']]
+    audit = [{'number': e['id'], 'duration': f'{e["duration_seconds"]} 秒', 'state': e['state'], 'verdict': labels[e['state']], 'notes': e.get('notes', ''), 'file': existing(folder, e.get('video', ''))} for e in records['audit']]
     return assets, coverage, prompts, audit
 
 
@@ -174,4 +184,4 @@ def render_markdown(folder: Path) -> None:
     for relative, lines in [('assets/asset-matrix.md', matrix), ('prompts/shot-prompts.md', plan), ('storyboard.md', storyboard), ('shot_audit.md', audit)]:
         path = folder / relative
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+        atomic_text(path, '\n'.join(lines) + '\n')

@@ -9,7 +9,7 @@ import {
 import zhCN from 'antd/locale/zh_CN';
 import {
   AppstoreOutlined, DashboardOutlined, FileTextOutlined,
-  FolderOpenOutlined, LinkOutlined, PlayCircleOutlined,
+  FolderOpenOutlined, LinkOutlined, PlayCircleOutlined, MenuOutlined,
 } from '@ant-design/icons';
 import 'antd/dist/reset.css';
 import './board.css';
@@ -22,7 +22,7 @@ const currentProjects = projects.filter((project) => project.kind === 'project')
 const archiveProjects = projects.filter((project) => project.kind === 'archive');
 const getProject = (path) => projects.find((project) => project.path === path);
 const percent = (part, whole) => whole ? Math.round(part / whole * 100) : 0;
-const localLink = (path) => `../${path}`;
+const localLink = (path) => `../${path.split('/').map(encodeURIComponent).join('/')}`;
 const fileSize = (bytes) => bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : bytes >= 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${bytes} B`;
 const viewLabels = { progress: '进度', documents: '剧本与资料', assets: '素材资产', materials: '分镜用料', prompts: '提示词', files: '文件台账' };
 
@@ -257,6 +257,9 @@ function ShotTable({ project }) {
     {
       title: '状态', dataIndex: 'state', key: 'state', width: 170,
       filters: [
+        { text: '未提交', value: 'planned' },
+        { text: '运行中', value: 'running' },
+        { text: '待审片', value: 'review' },
         { text: '已通过', value: 'passed' },
         { text: '需重做', value: 'redo' },
         { text: '已生成', value: 'generated' },
@@ -267,10 +270,10 @@ function ShotTable({ project }) {
     },
     { title: '长度', dataIndex: 'duration', key: 'duration', width: 120 },
     { title: '审核记录 / 素材', dataIndex: 'notes', key: 'notes' },
-    ...(project.kind === 'archive' ? [{
+    {
       title: '视频', dataIndex: 'file', key: 'file', width: 110,
-      render: (file, row) => row.state === 'generated' ? <Button type="link" href={localLink(file)} target="_blank">播放片段</Button> : '—',
-    }] : []),
+      render: (file) => file ? <Button type="link" href={localLink(file)} target="_blank">播放片段</Button> : '—',
+    },
   ];
   return (
     <Table
@@ -279,7 +282,7 @@ function ShotTable({ project }) {
       dataSource={project.shots}
       rowKey="number"
       pagination={{ pageSize: 8, showSizeChanger: false }}
-      scroll={{ x: project.kind === 'archive' ? 870 : 750 }}
+      scroll={{ x: 870 }}
       locale={{ emptyText: <Empty description="还没有分镜记录" /> }}
     />
   );
@@ -471,7 +474,7 @@ function FileRegistry({ project, openDocument }) {
   const filtered = files.filter((item) => item.path.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   const categories = [...new Set(files.map((item) => item.category))];
   const columns = [
-    { title: '文件', key: 'file', width: 390, render: (_, item) => <div className="registry-file">{item.name.toLowerCase().endsWith('.png') && <AssetImage asset={{ id: item.name, name: item.name, image: item.path }} size={42} />}<div><strong>{item.name}</strong><Text type="secondary">{item.path}</Text></div></div> },
+    { title: '文件', key: 'file', width: 390, render: (_, item) => <div className="registry-file">{/\.(png|jpe?g|webp|gif|svg)$/i.test(item.name) && <AssetImage asset={{ id: item.name, name: item.name, image: item.path }} size={42} />}<div><strong>{item.name}</strong><Text type="secondary">{item.path}</Text></div></div> },
     { title: '类别', dataIndex: 'category', key: 'category', width: 150, filters: categories.map((value) => ({ text: value, value })), onFilter: (value, item) => item.category === value },
     { title: '版本', key: 'version', width: 90, render: (_, item) => item.version ? `v${item.version}` : '—' },
     { title: '大小', key: 'size', width: 100, render: (_, item) => fileSize(item.bytes) },
@@ -600,6 +603,8 @@ function ProjectNavigator({ selected, onSelect }) {
 }
 
 function App() {
+  const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [route, setRoute] = useState(routeFromHash);
   const [promptShot, setPromptShot] = useState(null);
   const [lastProjectPath, setLastProjectPath] = useState(() => routeFromHash().path || currentProjects[0]?.path || projects[0]?.path || null);
@@ -614,13 +619,14 @@ function App() {
   }, []);
   const selected = route.path ? getProject(route.path) : null;
   function navigate(path, view = 'progress', doc = null) {
+    setMenuOpen(false);
     window.location.hash = path ? `project=${encodeURIComponent(path)}&view=${view}${doc ? `&doc=${encodeURIComponent(doc)}` : ''}` : 'overview';
     setRoute({ path: path || null, view, doc });
     if (path) setLastProjectPath(path);
     if (view !== 'prompts') setPromptShot(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
-  function goToPrompt(number) { setPromptShot(number); navigate(selected.path, 'prompts'); }
+  function goToPrompt(number) { if (selected) { setPromptShot(number); navigate(selected.path, 'prompts'); } }
   function openDocument(value) {
     const item = findDocument(selected, value);
     if (item) navigate(selected.path, 'documents', item.key);
@@ -650,7 +656,8 @@ function App() {
       }}
     >
       <Layout className="workspace-layout">
-        <Sider width={248} className="workspace-sider">
+        <Sider width={248} breakpoint="md" collapsedWidth={0} collapsed={mobile && !menuOpen} trigger={null} onBreakpoint={(broken) => { setMobile(broken); setMenuOpen(false); }} className="workspace-sider">
+          <div hidden={mobile && !menuOpen}>
           <div className="brand"><span className="brand-mark">TS</span><div><strong>Thirdspace AIGC</strong><small>制作管理台</small></div></div>
           <div className="sider-scroll">
             <Menu theme="dark" mode="inline" selectedKeys={selected ? [] : ['overview']} items={[{ key: 'overview', icon: <DashboardOutlined />, label: '作品总览' }]} onClick={() => goToProject(null)} />
@@ -658,11 +665,14 @@ function App() {
             <Menu theme="dark" mode="inline" selectedKeys={selected ? [`view:${route.view}`] : []} items={sectionItems} onClick={({ key }) => navigate(selected?.path || lastProjectPath, key.slice(5))} />
             <div className="sider-context"><small>{selected ? '当前作品' : '最近查看'}</small><strong>{recentProject?.title || '请先选择作品'}</strong><span>在主导航下方的作品导航区切换</span></div>
           </div>
+          </div>
         </Sider>
+        {mobile && menuOpen && <button className="sidebar-dismiss" aria-label="关闭导航菜单" onClick={() => setMenuOpen(false)} />}
         <Layout className="workspace-main">
           <Header className="app-header">
+            {mobile && <Button icon={<MenuOutlined />} aria-label="导航菜单" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)} />}
             <Breadcrumb items={[{ title: 'Thirdspace AIGC' }, { title: selected ? selected.title : '作品总览' }, ...(selected ? [{ title: viewLabels[route.view] }] : [])]} />
-            <Tag color="processing">积分队列 · {board.automation_status === 'active' ? '配置记录：已启用' : '未配置自动化'}</Tag>
+            <Tag>数据快照 · 刷新页面查看最新记录</Tag>
           </Header>
           <ProjectNavigator selected={selected} onSelect={(path) => navigate(path, path && selected ? route.view : 'progress')} />
           <Content>
