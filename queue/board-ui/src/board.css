@@ -169,7 +169,7 @@ body { margin: 0; }
   .document-layout { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
-  .workspace-sider { flex: 0 0 186px !important; max-width: 186px !important; min-width: 186px !important; width: 186px !important; }
+  .workspace-sider { position: fixed; z-index: 20; left: 0; top: 0; }
   .app-header { min-height: 70px; height: auto; padding: 12px 16px !important; flex-wrap: wrap; }
   .project-nav-bar { align-items: flex-start; flex-direction: column; gap: 12px; padding: 14px 16px; }
   .project-nav-panel { padding: 0 16px 16px; }
@@ -185,3 +185,6 @@ body { margin: 0; }
   .stat-grid { grid-template-columns: 1fr 1fr; gap: 9px; }
   .section-progress { align-items: flex-start; flex-direction: column; gap: 6px; }
 }
+
+.sidebar-dismiss { position: fixed; inset: 0 0 0 248px; z-index: 19; border: 0; background: #00152966; cursor: pointer; }
+.page-heading h2, .project-nav-current { overflow-wrap: anywhere; }

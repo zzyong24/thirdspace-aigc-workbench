@@ -1,0 +1,13 @@
+version: 1
+jobs:
+  - id: demo-render
+    project: projects/demo-rooftop
+    action: render
+    depends_on: []
+    enabled: true
+  - id: demo-ready
+    project: projects/demo-rooftop
+    action: check_ready
+    depends_on: [demo-render]
+    # Teaching references are drafts: opt in only after replacing/uploading them.
+    enabled: false

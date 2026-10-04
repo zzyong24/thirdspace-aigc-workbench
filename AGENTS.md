@@ -8,3 +8,5 @@
 - New installations have no points authorization or scheduler. A configuration flag is not evidence of user payment authorization. Confirm authorization in the current user context and inspect live cost before submission. Never charge cash or top up credits.
 - Do not commit credentials, browser state, private canvas URLs, personal reference images, private projects or logs. Keep example projects explicitly marked as examples.
 - Preserve existing user edits, completed tasks, rejected versions and audit evidence. Recover the original job before retrying; an export is complete only after its actual result plays.
+- Executable jobs live in queue/automation.yaml, separate from legacy human planning queues. Run queue/automation.py without --execute to inspect first. Never translate arbitrary task text into a shell command.
+- RunningHub generation adapter is experimental pending real end-to-end acceptance. Do not upgrade its status in docs from unit tests, a CLI handshake or a browser observation alone.

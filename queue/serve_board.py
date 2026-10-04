@@ -24,13 +24,18 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_header("Location", "/queue/board.html")
             self.end_headers()
             return None
-        parts = Path(path).parts
-        denied = any((part.startswith(".") and part not in {".", "..", ".agents"}) or part in {"node_modules", "__pycache__"} for part in parts)
+        parts = path.replace('\\', '/').split('/')
+        denied = any((part.startswith(".") and part != ".agents") or ':' in part or part in {"node_modules", "__pycache__"} for part in parts)
         target = Path(self.translate_path(self.path)).resolve()
         if denied or not target.is_relative_to(ROOT.resolve()):
             self.send_error(404)
             return None
         return super().send_head()
+
+    def end_headers(self):
+        self.send_header('Cache-Control', 'no-store')
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        super().end_headers()
 
     def list_directory(self, path):
         self.send_error(404, "Directory listing is disabled")
@@ -70,4 +75,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8')
     main()
