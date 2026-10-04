@@ -13,6 +13,8 @@
 
 - 从Git全新克隆到带空格的陌生目录，使用隔离Python虚拟环境与官方PyPI/npm源安装，12项测试与前端构建通过；从仓库外启动成功，示例数据、默认积分策略及调度状态正确。
 
+- GitHub Actions在Ubuntu、Python3.11、Node22上完成测试、依赖安装和前端构建：[首轮验证记录](https://github.com/zzyong24/thirdspace-aigc-workbench/actions/runs/37209446711)。
+
 ## 有意保留的门槛
 
 `projects/demo-rooftop` 的 --ready 校验失败是正确结果：参考图是教学草稿，未上传RunningHub，镜头均为planned。无需生成或支付即可浏览完整工作台；不能把这份示例当成真实生成能力的效果证明。
