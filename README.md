@@ -42,11 +42,13 @@ git clone https://github.com/zzyong24/thirdspace-aigc-workbench.git
 cd thirdspace-aigc-workbench
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install -r requirements.txt
+python3 -m pip install --index-url https://pypi.org/simple -r requirements.txt
 python3 queue/serve_board.py
 ```
 
 Windows 用 `py -3 -m venv .venv`，PowerShell 激活命令为 `.venv\Scripts\Activate.ps1`；激活后使用相同的 pip 和 Python 命令。Windows 步骤尚未实机验证。
+
+安装命令使用官方 PyPI 源，避免继承本机失效的镜像配置。
 
 打开 [本地工作台](http://127.0.0.1:8767/queue/board.html)。启动时会刷新记录，默认仅监听本机；端口占用可用 `--port 8768`，Ctrl+C 停止。安装后可离线浏览本地项目；RunningHub 生成仍需联网。
 
