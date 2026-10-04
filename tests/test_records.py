@@ -156,6 +156,7 @@ class RecordsTests(unittest.TestCase):
 
     def test_registered_video_is_project_relative_and_playable_link_is_kept(self):
         path = self.project / 'generated/shots/01 my video.mp4'
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b'video fixture')
         self.modify('shot_audit.yaml', lambda d: d['records'][0].update(state='generated', video='generated/shots/01 my video.mp4'))
         with patch.object(build_board, 'ROOT', self.root), patch.object(build_board, 'PROJECTS', self.root / 'projects'):

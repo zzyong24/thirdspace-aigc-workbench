@@ -6,7 +6,10 @@ await page.goto(request.url);
 await page.waitForSelector('h2');
 const projects = await page.evaluate(() => JSON.parse(document.querySelector('#board-data').textContent).projects);
 if (!projects.length) throw new Error('UI fixture needs at least one project');
-const project = projects[0].path;
+const fixture = projects.find(p => p.kind === 'project');
+if (!fixture) throw new Error('UI fixture needs an active project');
+const project = fixture.path;
+const headings = {documents:'剧本与创作资料',assets:'素材资产',materials:'分镜用料',prompts:'逐镜提示词',files:'作品文件台账'};
 let checks = 0;
 for (const width of [1440, 768, 390]) {
   await page.cdp('Emulation.setDeviceMetricsOverride', {width, height: 900, deviceScaleFactor: 1, mobile: false});
@@ -20,7 +23,7 @@ for (const width of [1440, 768, 390]) {
   }
   for (const view of ['progress', 'documents', 'assets', 'materials', 'prompts', 'files']) {
     await page.goto(request.url + '#project=' + encodeURIComponent(project) + '&view=' + view);
-    await page.waitForSelector('h2');
+    await page.waitForFunction(({view, heading}) => view === 'progress' ? !!document.querySelector('main .section-progress') : [...document.querySelectorAll('main h3')].some(h => h.textContent === heading), {view, heading:headings[view]});
     const state = await page.evaluate(() => {
       const fixture = JSON.parse(document.querySelector('#board-data').textContent);
       const missing = [...document.images].filter(i => i.src.includes(location.host) && (!i.complete || i.naturalWidth === 0)).map(i => i.getAttribute('src'));
