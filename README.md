@@ -130,7 +130,7 @@ python3 queue/build_board.py
 python3 -m unittest discover -s tests -v
 ```
 
-验证包括 37 项 Python 测试、真实 Ego 浏览器的 39 项界面检查（1440/768/390px）、前端构建、Ant Design lint、RunningHub 实际页面观察及 Codex CLI 结构化输出。CI 运行 Python 3.10/3.13 × Windows/macOS/Linux，以及 Node 20/22 构建；结果与验证边界见 [验证记录](docs/validation.md)。
+验证包括 38 项 Python 测试、真实 Ego 浏览器的 39 项界面检查（1440/768/390px）、前端构建、Ant Design lint、RunningHub 实际页面观察及 Codex CLI 结构化输出。CI 运行 Python 3.10/3.13 × Windows/macOS/Linux，以及 Node 20/22 构建；结果与验证边界见 [验证记录](docs/validation.md)。
 
 可选真实界面回归（先启动工作台、打开并完成 Ego onboarding）：
 

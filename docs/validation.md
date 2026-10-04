@@ -4,7 +4,7 @@
 
 ## 当前通过
 
-- 37 项 Python 单元/集成测试：陌生中文空格路径的实际 CLI、新作品脚手架、Skill 独立安装、严格 YAML、缺图/草稿/摄影调度、依赖拓扑与变化、幂等执行、写前状态、中断/超时不重试、显式恢复、并发锁、积分授权/时区窗口、结果证据契约、原子写失败保留旧文件、Windows 路径/保留名、本地 HTTP 隐藏文件/外链隔离。
+- 38 项 Python 单元/集成测试：陌生中文空格路径的实际 CLI、新作品脚手架、Skill 独立安装、严格 YAML、缺图/草稿/摄影调度、依赖拓扑与变化、幂等执行、写前状态、中断/超时不重试、显式恢复、并发锁、积分授权/时区窗口、结果证据契约、原子写失败保留旧文件、前端升级缓存刷新、Windows 路径/保留名、本地 HTTP 隐藏文件/外链隔离。
 - 实际执行 render → 刷新 board，再运行会跳过相同输入。check_ready 对教学草稿失败是预期行为。
 - Ego Lite 真实 Chromium：39 项检查覆盖 1440/768/390px 的进度、资料、资产、用料、提示词、文件页、图片加载、无页面横向溢出、窄屏菜单开关与空搜索。执行命令：scripts/check_ui.py。视口模拟是布局验收，不等于 iPhone/Android 实机测试。
 - 真实 RunningHub 首页观察通过执行器运行，保存了 Ego spaceId、真实 URL 与 snapshot；没有点击生成或消费积分。修复了 Ego console 写 stderr 和自定义环境变量不透传的问题，加入回归。
@@ -13,7 +13,7 @@
 
 ## 持续集成
 
-工作流现在运行 Python 3.10/3.13 × Ubuntu/macOS/Windows 六组，以及 Node20/22 两组前端构建。实际结果以 [GitHub Actions](https://github.com/zzyong24/thirdspace-aigc-workbench/actions/workflows/ci.yml) 对当前提交的状态为准。
+工作流现在运行 Python 3.10/3.13 × Ubuntu/macOS/Windows 六组，以及 Node20/22 两组前端构建。ae80003 的八组矩阵已全部通过：[通过记录](https://github.com/zzyong24/thirdspace-aigc-workbench/actions/runs/37223438649)。全新克隆到中文/空格目录、隔离venv、官方PyPI、仓库外执行及独立Skill安装也通过（该轮37项）。后续提交实际结果以 [GitHub Actions](https://github.com/zzyong24/thirdspace-aigc-workbench/actions/workflows/ci.yml) 对当前提交的状态为准。
 
 Windows无创建符号链接权限时，只跳过对应符号链接用例，其余HTTP/路径测试仍运行。Ego 官方当前提供Mac版，所以不会把Windows/Linux的Python CI描述为浏览器生成验收。
 

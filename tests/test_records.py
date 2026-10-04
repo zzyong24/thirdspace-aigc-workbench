@@ -177,6 +177,22 @@ class RecordsTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('slug', result.stderr)
 
+    def test_builder_versions_bundle_urls_so_updates_bypass_stale_browser_cache(self):
+        queue = self.root / 'queue'
+        (queue / 'board-ui').mkdir(parents=True)
+        shutil.copy2(ROOT / 'queue/board-ui/template.html', queue / 'board-ui/template.html')
+        (queue / 'board.bundle.js').write_bytes(b'first bundle')
+        (queue / 'board.bundle.css').write_bytes(b'styles')
+        with patch.object(build_board, 'ROOT', self.root), patch.object(build_board, 'QUEUE', queue), patch.object(build_board, 'PROJECTS', self.root / 'projects'):
+            build_board.main()
+            first = (queue / 'board.html').read_text(encoding='utf-8')
+            (queue / 'board.bundle.js').write_bytes(b'updated bundle')
+            build_board.main()
+        second = (queue / 'board.html').read_text(encoding='utf-8')
+        match = r'board.bundle.js\?v=([a-f0-9]{16})'
+        self.assertNotEqual(re.search(match, first).group(1), re.search(match, second).group(1))
+        self.assertIn('board.bundle.css?v=', second)
+
 
 if __name__ == '__main__':
     unittest.main()

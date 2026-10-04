@@ -6,6 +6,7 @@ import sys
 
 
 import json
+import hashlib
 import re
 import subprocess
 from datetime import datetime
@@ -503,6 +504,12 @@ def main() -> None:
     template = read_text(QUEUE / "board-ui/template.html")
     if "__BOARD_DATA__" not in template:
         raise ValueError("board-ui/template.html is missing the data slot")
+    for name in ('board.bundle.js', 'board.bundle.css'):
+        bundle = QUEUE / name
+        if not bundle.is_file():
+            raise ValueError(f'{name} missing; build queue/board-ui first')
+        fingerprint = hashlib.sha256(bundle.read_bytes()).hexdigest()[:16]
+        template = template.replace(f'./{name}"', f'./{name}?v={fingerprint}"')
     output = QUEUE / "board.html"
     atomic_text(output, template.replace("__BOARD_DATA__", data))
     print(f"Updated {output.relative_to(ROOT)} ({len(board['projects'])} project(s))")
